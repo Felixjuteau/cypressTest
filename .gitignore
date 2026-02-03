@@ -1,0 +1,9 @@
+backend/target/
+backend/.m2/
+frontend/node_modules/
+node_modules/
+frontend/dist/
+.idea/
+.vscode/
+*.iml
+**/vault.yml
