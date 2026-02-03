@@ -2,7 +2,7 @@ TP usine logicielle testss e2e
 Envoyer le lien vers votre depot git à 
 olivier.charles@caensup.fr
 
-1) Analyser le fonctionnement de TicketFlow 
+1) Analyser le fonctionnement de TicketFlow
 https://github.com/kerware/ticketflow
 
 2) Appliquer les bonnes pratiques e2e avec
