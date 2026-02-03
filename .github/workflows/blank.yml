@@ -1,36 +1,169 @@
-# This is a basic workflow to help you get started with Actions
+name: CI Pipeline
 
-name: CI
-
-# Controls when the workflow will run
 on:
-  # Triggers the workflow on push or pull request events but only for the "master" branch
   push:
-    branches: [ "master" ]
+    branches:
+      - main
+      - develop
   pull_request:
-    branches: [ "master" ]
 
-  # Allows you to run this workflow manually from the Actions tab
-  workflow_dispatch:
-
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  build:
-    # The type of runner that the job will run on
+
+  # --------------------------
+  # 1️⃣ Build Backend
+  # --------------------------
+  build_backend:
     runs-on: ubuntu-latest
-
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      # Runs a single command using the runners shell
-      - name: Run a one-line script
-        run: echo Hello, world!
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
 
-      # Runs a set of commands using the runners shell
-      - name: Run a multi-line script
+      - name: Build Backend
+        working-directory: ./backend
+        run: mvn -B -DskipTests clean package
+
+      - name: Upload Backend Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-jar
+          path: backend/target/*.jar
+
+  # --------------------------
+  # 2️⃣ Build Frontend
+  # --------------------------
+  build_frontend:
+    runs-on: ubuntu-latest
+    needs: build_backend
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Build Frontend
+        run: npm run build
+        working-directory: ./frontend
+
+      - name: Upload Frontend Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+  # --------------------------
+  # 3️⃣ Test Backend
+  # --------------------------
+  test_backend:
+    runs-on: ubuntu-latest
+    needs: build_backend
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Run Backend Tests
+        working-directory: ./backend
+        run: mvn -B test
+
+      - name: Upload Test Reports
+        uses: actions/upload-artifact@v3
+        with:
+          name: backend-test-reports
+          path: backend/target/surefire-reports/
+
+  # --------------------------
+  # 4️⃣ Test Frontend (unit)
+  # --------------------------
+  test_frontend:
+    runs-on: ubuntu-latest
+    needs: build_frontend
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Frontend Dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Run Frontend Tests
+        run: npm test
+        working-directory: ./frontend
+
+  # --------------------------
+  # 5️⃣ Cypress E2E Test
+  # --------------------------
+  test_e2e_cypress:
+    runs-on: ubuntu-latest
+    needs: [build_backend, build_frontend]
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Build Backend & Frontend
         run: |
-          echo Add other actions to build,
-          echo test, and deploy your project.
+          # Build backend
+          mvn -B -DskipTests clean package -f backend/pom.xml
+          # Build frontend
+          npm run build --prefix frontend
+
+      - name: Run Backend and Frontend
+        run: |
+          # Lancer backend
+          java -jar backend/target/*.jar &
+          BACKEND_PID=$!
+          echo "Backend PID: $BACKEND_PID"
+
+          # Lancer frontend
+          npx serve -s frontend/dist -l 5173 &
+          FRONTEND_PID=$!
+          echo "Frontend PID: $FRONTEND_PID"
+
+          # Attendre que les serveurs démarrent
+          sleep 10
+
+          # Lancer Cypress login.cy.js
+          npx cypress run --spec "cypress/e2e/login.cy.js"
+
+          # Nettoyer les serveurs
+          kill $BACKEND_PID
+          kill $FRONTEND_PID
+
+      - name: Upload Cypress Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: cypress-artifacts
+          path: |
+            cypress/videos
+            cypress/screenshots
