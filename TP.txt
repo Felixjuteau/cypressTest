@@ -1,0 +1,18 @@
+TP usine logicielle testss e2e
+Envoyer le lien vers votre depot git à 
+olivier.charles@caensup.fr
+
+1) Analyser le fonctionnement de TicketFlow 
+https://github.com/kerware/ticketflow
+
+2) Appliquer les bonnes pratiques e2e avec
+Cypress sur TicketFlow
+ - Réaliser des Tests cypress CRUD par IHM sur les tickets
+     ( Réinit Base deonnées ? ) 
+  - Réaliser un test de workflow (création à fermeture de ticket, avec ajout de commentaire ) 
+3) Embarquer les tests cypress dans le projet
+
+4) Réaliser un pipepline complet ( voir  exemple sur le drive ) avec les tests e2e à la fin sur une CI de votre choix
+( GitHub Actions, GitLab CI)
+
+5) Réfléchir à la dockerisation ( appli, bd , cypress ) sur "Play With Docker"
