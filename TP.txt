@@ -1,5 +1,5 @@
 TP usine logicielle testss e2e
-Envoyer le lien vers votre depot git à 
+Envoyer le lien vers votre depot git a
 olivier.charles@caensup.fr
 
 1) Analyser le fonctionnement de TicketFlow
